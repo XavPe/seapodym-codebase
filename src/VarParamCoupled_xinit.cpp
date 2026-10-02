@@ -1,9 +1,11 @@
 #include "VarParamCoupled.h"
+#include "AatExport.h"
 bool nocase_compare(char c1, char c2);
 
 void VarParamCoupled::xinit(dvector& x, adstring_array& x_names)
 {
 	int idx = 1;
+	parameter_species.assign(_nvarcalc, "");
 	x.initialize();
 
 	par_init(dvarsQ_sp_larvae,q_sp_larvae,q_sp_larvae_min,q_sp_larvae_max,"/q_sp_larvae",x,x_names,idx);
@@ -88,6 +90,7 @@ void VarParamCoupled::xinit(dvector& x, adstring_array& x_names)
 						dvarpars_min[idx] = q_sp_fishery_min[i][k];
 						dvarpars_max[idx] = q_sp_fishery_max[i][k];
 						parfile_names[idx-1] = "/q_sp_fishery/"+list_fishery_name[f];
+						parameter_species.at(idx-1) = sp_name[i];
 						++idx; 
 					}else{
 						dvarsQ_sp_fishery[i][k] = q_sp_fishery[i][k];
@@ -102,6 +105,7 @@ void VarParamCoupled::xinit(dvector& x, adstring_array& x_names)
 							dvarpars_min[idx] = q_slope_fishery_min[k];
 							dvarpars_max[idx] = q_slope_fishery_max[k];
 							parfile_names[idx-1] = "/q_sp_fishery/"+list_fishery_name[f]+"/slope";
+							parameter_species.at(idx-1) = sp_name[0];
 							++idx;
 						}else{
 							dvarsQslope_fishery[k] = q_slope_fishery[k];
@@ -160,6 +164,7 @@ void VarParamCoupled::xinit(dvector& x, adstring_array& x_names)
 						dvarpars_min[idx] = s_slope_sp_fishery_min[i][k];
 						dvarpars_max[idx] = s_slope_sp_fishery_max[i][k];
 						parfile_names[idx-1] = "/s_sp_fishery/"+list_fishery_name[f]; 
+						parameter_species.at(idx-1) = sp_name[i];
 						++idx; 
 					} 
 					else dvarsSslope_sp_fishery[i][k] = s_slope_sp_fishery[i][k];
@@ -177,6 +182,7 @@ void VarParamCoupled::xinit(dvector& x, adstring_array& x_names)
 							//else	x_names[idx] = "s mean length(" + str(i) + "," + str(k) + ")";
 							dvarpars[idx] = value;
 							parfile_names[idx-1] = "/s_sp_fishery/"+list_fishery_name[f]+"/length_threshold";
+							parameter_species.at(idx-1) = sp_name[i];
 							++idx; 
 						} 
 						else dvarsSlength_sp_fishery[i][k] = s_length_sp_fishery[i][k];
@@ -192,6 +198,7 @@ void VarParamCoupled::xinit(dvector& x, adstring_array& x_names)
 							dvarpars_min[idx] = s_asympt_sp_fishery_min[i][k];
 							dvarpars_max[idx] = s_asympt_sp_fishery_max[i][k];
 							parfile_names[idx-1] = "/s_sp_fishery/"+list_fishery_name[f]+"/right_asymptote";
+							parameter_species.at(idx-1) = sp_name[i];
 							++idx; 
 						} 
 						else dvarsSasympt_sp_fishery[i][k] = s_asympt_sp_fishery[i][k];
@@ -238,6 +245,7 @@ void VarParamCoupled::xinit(dvector& x, adstring_array& x_names)
 						x_names[idx] = "likelihood parameter(" + str(i) + "," + str(k) + ")"; 
 						dvarpars[idx] = value;
 						parfile_names[idx-1] = "/likelihood_parameters/"+list_fishery_name[f];
+						parameter_species.at(idx-1) = sp_name[i];
 						++idx;
 					} else 
 						dvarsLike_param[i][k] = like_param[i][k];
@@ -253,6 +261,7 @@ void VarParamCoupled::xinit(dvector& x, adstring_array& x_names)
 						x_names[idx] = "probability of zero(" + str(i) + "," + str(k) + ")"; 
 						dvarpars[idx] = value;
 						parfile_names[idx-1] = "/prob_zero/"+list_fishery_name[f];
+						parameter_species.at(idx-1) = sp_name[i];
 						++idx;
 					} else 
 						dvarsProb_zero[i][k] = prob_zero[i][k];
@@ -290,6 +299,7 @@ void VarParamCoupled::par_init(dvar_vector& dvarsCoef, dvector& coef, const doub
 			dvarpars_min[idx] = coef_min;
 			dvarpars_max[idx] = coef_max;
 			parfile_names[idx-1] = s;
+			parameter_species.at(idx-1) = sp_name[i];
 			++idx;
 		}
 	} 
@@ -323,6 +333,7 @@ void VarParamCoupled::par2_init(dvar_vector& dvarsCoef, dvector& coef, const dou
 			dvarpars_min[idx] = coef_min;
 			dvarpars_max[idx] = coef_max;
 			parfile_names[idx-1] = s1+"/"+s2;
+			parameter_species.at(idx-1) = sp_name[i];
 			++idx;
 		}
 	} 
@@ -462,3 +473,38 @@ double VarParamCoupled::par_init_step_right(int ix) {
 
 
 
+
+// Read only: reproduce the internal coordinate and the ADMB conversion used by
+// reset(), without updating parameter state or consuming random numbers.
+void VarParamCoupled::export_aat(const char* source, int seed, int count,
+                                 const dmatrix& draws)
+{
+    if (count <= 0 || _nvarcalc <= 0 ||
+        parameter_species.size() != static_cast<size_t>(_nvarcalc) ||
+        draws.rowmin() > 1 || draws.rowmax() < _nvarcalc)
+        throw std::runtime_error("inconsistent AAT dimensions");
+    std::vector<aat::Parameter> parameters;
+    for (int i = 1; i <= _nvarcalc; ++i) {
+        if (draws[i].indexmin() > 0 || draws[i].indexmax() < count-1)
+            throw std::runtime_error("missing AAT draws");
+        aat::Parameter p = {parfile_names[i-1], parameter_species[i-1],
+                            dvarpars_min[i], dvarpars_max[i]};
+        parameters.push_back(p);
+    }
+    aat::validate(parameters);
+    std::vector<std::vector<double> > rows;
+    for (int k = 0; k < count; ++k) {
+        std::vector<double> row;
+        for (int i = 1; i <= _nvarcalc; ++i) {
+            const double delta = draws[i][k];
+            if (!std::isfinite(delta) || delta < 0 || delta > 1)
+                throw std::runtime_error("invalid AAT random coordinate");
+            dvariable internal = par_init_step(i, delta);
+            dvariable penalty = 0.0;
+            row.push_back(value(boundp(internal, dvarpars_min[i],
+                                      dvarpars_max[i], penalty)));
+        }
+        rows.push_back(row);
+    }
+    aat::write(source, seed, parameters, rows);
+}

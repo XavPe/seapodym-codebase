@@ -2,6 +2,7 @@
 #define __VarParamCoupled_h__
 
 #include <cstdlib>
+#include <vector>
 //#include <fvar.hpp>
 #include "XMLDocument2.h"
 #include "Param.h"
@@ -29,6 +30,7 @@ private:
 	CReadWrite rw;
 
 	dvector dvarpars;
+	std::vector<std::string> parameter_species;
 	dvector dvarpars_min, dvarpars_max;
 
 	void large_pen(dvariable x, double xmin, double xmax, dvariable& penalty, const double eps);
@@ -62,6 +64,7 @@ public:
 	double par_init_up(int ix, double eps);
 	dvector dpar_dx(dvar_vector x, const int nvar);
 	double par_init_step(int ix, double delta);
+	void export_aat(const char* source, int seed, int count, const dmatrix& draws);
 	double par_init_step_left(int ix);
 	double par_init_step_right(int ix);
 	void set_all_false(string* pnames);

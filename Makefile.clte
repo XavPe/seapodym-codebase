@@ -1,4 +1,5 @@
 HEADERS= \
+AatExport.h \
 Cmdopt.h \
 XMLDocument2.h \
 calpop.h \

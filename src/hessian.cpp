@@ -487,6 +487,14 @@ void Sensitivity_analysis(const char* parfile, Cmdopt* cmdopt)
 			xr[i].fill_randu(r);
 		}
 
+		// Complete and close all exports before any AAT simulation.
+		try {
+			sc.param->export_aat(parfile, seed, cmdopt->nb_aat, xr);
+		} catch (const std::exception& e) {
+			cerr << "AAT export failed before simulations: " << e.what() << endl;
+			exit(EXIT_FAILURE);
+		}
+
 		cout << "\nComputing likelihood only: " << endl << endl;
 
 		// Table column names
@@ -506,7 +514,7 @@ void Sensitivity_analysis(const char* parfile, Cmdopt* cmdopt)
 				x(i) = sc.param->par_init_step(i,xr[i][k]);
 			}
 			
-			//cerr << "AAT_BEGIN exp_id=" << k+1 << endl;
+			cerr << "AAT_BEGIN exp_id=" << k+1 << endl;
 			double like = run_sim(sc,x);//sc.run_coupled((dvar_vector)x);
 			
 			cout << k+1;
