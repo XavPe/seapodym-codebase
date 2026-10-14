@@ -130,8 +130,7 @@ void VarSimtunaFunc::Ha_comp(VarParamCoupled& param, VarMatrices& mat, const PMa
 				double sfunc = mat.season_switch(sp,jday,j);
 
 				double Hf = value(Ha(i,j));
-				// Xavier 23/09/2026 : with a floor of 1e-16 to avoid zero habitat. Copying the same floor as in Hf_comp, so that the derivative dHa/dx is unchanged.
-				Ha.elem_value(i,j) = topo*(Hs(i,j)*sfunc + Hf*(1.0-sfunc)) + 1e-16;
+				Ha.elem_value(i,j) = topo*(Hs(i,j)*sfunc + Hf*(1.0-sfunc));
 
 				//3. If not optimizing, will write habitat to DYM files
 				if (!param.gcalc()){

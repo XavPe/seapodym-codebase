@@ -1,6 +1,7 @@
 #include <fvar.hpp>
 #include "SeapodymCoupled.h"
 #include "Cmdopt.h"
+#include "AatExport.h"
 
 string get_path(const char* full_path);
 double run_model(SeapodymCoupled& sc, dvar_vector x, dvector& g, const int nvar);
@@ -292,6 +293,10 @@ void Hyperspace_projection(SeapodymCoupled& sc, dvar_vector x)
 	ofstream ofs;
 	const char* filename = "hyperproj.out";
 	ofs.open(filename, ios::out);
+	// Xavier ajout : set precision to maximum digits for double to avoid loss of precision in output
+	ofs << std::setprecision(std::numeric_limits<double>::max_digits10);
+	cout << std::setprecision(std::numeric_limits<double>::max_digits10);
+	// Xavier ajout - fin
 	for (int n=0; n<sc.param->nb_varproj; n++)
 		ofs << sc.param->varproj[n] << " ";
 	ofs << "\n" << n1 << " " << n2 << "\n"; 
@@ -473,6 +478,14 @@ void Sensitivity_analysis(const char* parfile, Cmdopt* cmdopt)
 	}
 	else if (cmdopt->sftype==3){//just a forward run, usually to be used in ALL-AT-a-TIME sensitivity analysis
 
+		// Recovery is audited for the cached-forcing, uncoupled native AAT path.
+		// Tagging accumulators are reset each evaluation, including tags_only.
+		if (!sc.param->gcalc() || sc.param->flag_coupling) {
+			cerr << "AAT recovery requires cached forcings and no forage coupling." << endl;
+			exit(EXIT_FAILURE);
+		}
+		sc.enable_aat_rejections();
+
 		gradient_structure::set_NO_DERIVATIVES();
 		int seed=(int)time1;// Use time stamp for the random seed
 		random_number_generator r(seed);
@@ -506,7 +519,19 @@ void Sensitivity_analysis(const char* parfile, Cmdopt* cmdopt)
 		//cout << left;
 		//cout << setw(6) << "like" << setw(25) << "clike" << setw(25) << "lflike" << setw(25) << "stocklike" << setw(25) << "taglike" << setw(25) << "earlylike" << endl;
 
-		// Run the AAT experiments
+		// A dedicated table keeps rejected IDs without invalid numeric likelihood rows.
+		// Existing parameter exports and the accepted-row console format are retained.
+		aat::Files status_file;
+		status_file.put("aat_status.tsv", "exp_id\tstatus\tlike\tclike\tlflike\tstocklike\ttaglike\tlarvaelike\tspawninglike\tspecies_index\tage_index\ti\tj\ttime_step\tyear\tmonth\tday\n");
+		status_file.commit();
+		std::ofstream status("aat_status.tsv", std::ios::app);
+		status.exceptions(std::ios::badbit | std::ios::failbit);
+		status.imbue(std::locale::classic());
+		int accepted = 0, rejected = 0;
+		const std::streamsize old_precision = cout.precision();
+		cout << std::setprecision(std::numeric_limits<double>::max_digits10);
+
+		// Run the AAT experiments: keep the same process, forcings and draws.
 		cout << right;
 		for (int k=0; k<cmdopt->nb_aat; k++){
 
@@ -516,6 +541,25 @@ void Sensitivity_analysis(const char* parfile, Cmdopt* cmdopt)
 			
 			cerr << "AAT_BEGIN exp_id=" << k+1 << endl;
 			double like = run_sim(sc,x);//sc.run_coupled((dvar_vector)x);
+			const aat::ZeroHabitatEvent& event = sc.get_aat_rejection();
+			if (event.detected) {
+				aat::write_status(status, k+1, "rejected_zero_habitat", nullptr, event);
+				++rejected;
+				cerr << "AAT_REJECT exp_id=" << k+1 << " reason=zero_habitat"
+				     << " age=" << event.age << " i=" << event.i << " j=" << event.j
+				     << " time_step=" << event.step << endl;
+				continue;
+			}
+			double values[7] = {like, sc.get_clike(), sc.get_lflike(), sc.get_stocklike(),
+			                    sc.get_taglike(), sc.get_larvaelike(), sc.get_spawninglike()};
+			if (!aat::finite_result(values, 7)) {
+				aat::write_status(status, k+1, "nonfinite", values, event);
+				cerr << "AAT_ERROR exp_id=" << k+1 << " reason=nonfinite; campaign stopped" << endl;
+				exit(EXIT_FAILURE);
+			}
+			aat::write_status(status, k+1, "ok", values, event);
+			++accepted;
+
 			
 			cout << k+1;
 			for (int i=1; i<=nvar; i++){
@@ -534,6 +578,10 @@ void Sensitivity_analysis(const char* parfile, Cmdopt* cmdopt)
 			cout << "\t" << like << "\t" << clike << "\t" << lflike << "\t" << stocklike << "\t" << taglike << "\t" << larvaelike << "\t" << spawninglike << endl;
 			//cout << setw(6) << like << setw(25) << clike << setw(25) << lflike << setw(25) << stocklike << setw(25) << taglike << setw(25) << larvaelike << endl;
 		}
+		status.close();
+		cout.precision(old_precision);
+		cerr << "AAT_SUMMARY planned=" << cmdopt->nb_aat << " ok=" << accepted
+		     << " rejected_zero_habitat=" << rejected << endl;
 	}	
 	
 	time_t time2 = clock();

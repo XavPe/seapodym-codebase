@@ -4,6 +4,7 @@
 #include "SeapodymDocConsole.h"
 #include "Date.h"
 #include "NishikawaLike.h"
+#include "AatRunStatus.h"
 
 /*!
 \brief The main simulation class
@@ -51,6 +52,9 @@ friend class tag_release;
 
 	int EditRunCoupled(const char* parfile);
 	void prerun_model();
+	// Enabled only by the native AAT branch, never by optimization or -s.
+	void enable_aat_rejections() { aat_rejection_enabled = true; }
+	const aat::ZeroHabitatEvent& get_aat_rejection() const { return aat_rejection; }
 	double OnRunCoupled(dvar_vector x, const bool writeoutputfiles = false);
 	void OnSimulationEnd();
 	void ReadEarly(string what);	
@@ -77,7 +81,10 @@ friend class tag_release;
 	double get_crit(){return param->crit;}
 
 private:
+	bool aat_rejection_enabled = false;
+	aat::ZeroHabitatEvent aat_rejection;
 	double dnum1, t_yrdd;
+
 	double cell_area;
 	int day, month, qtr, year, past_month, past_qtr, jday_run, jday_spinup; //date variables
 	int nbt_building, nbt_spinup_tuna, nbt_forecast, nbt_total, nbt_start_series;

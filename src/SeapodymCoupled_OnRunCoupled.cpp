@@ -33,10 +33,27 @@ void SeapodymCoupled::prerun_model()
 double SeapodymCoupled::OnRunCoupled(dvar_vector x, const bool writeoutputfiles)
 {
 	InitializeAll();
+	if (aat_rejection_enabled) {
+		// An earlier draw can have ended midway through a month/quarter.
+		// Start from the calendar and accumulators of a fresh evaluation.
+		aat_rejection = aat::ZeroHabitatEvent();
+		param->total_like = std::numeric_limits<double>::quiet_NaN();
+		int initial_jday = 0;
+		getDate(initial_jday);
+		if (nb_fishery > 0) {
+			mat.C_N_sp_age_fishery.initialize();
+			mat.dvarLF_est.initialize();
+		}
+	}
 	SUM_CATCH = 0.0;
 
 	past_month=month;
 	past_qtr=qtr;
+	if (aat_rejection_enabled) {
+		// Force the first fisheries quarter to load its observations as well.
+		past_month = 0;
+		past_qtr = 0;
+	}
 
 	//Temporarily reading the tau of the first cohort
 	//Need to be just a single number for all cohorts
@@ -138,6 +155,11 @@ double SeapodymCoupled::OnRunCoupled(dvar_vector x, const bool writeoutputfiles)
 	if (nb_tagpops>0){
 		tagpop_age_solve.initialize();
 		rec_pred.initialize();
+		if (aat_rejection_enabled) {
+			// Clear any tagging quarter left incomplete by a rejected draw.
+			rec_obs_like.initialize();
+			rec_pred_like.initialize();
+		}
 	}
 
 	if (writeoutputfiles){
@@ -452,8 +474,31 @@ Mortality.initialize();
 					}}
 
 					if (param->age_compute_habitat[sp][age]!=param->age_compute_habitat[sp][age-1]){
-						if (!tags_only || tags_age_habitat(age))
-							pop.Precaldia_Caldia(map, *param, mat, Habitat, Total_pop, sp, age, tcur, jday);//checked	
+						if (!tags_only || tags_age_habitat(age)) {
+							if (aat_rejection_enabled) {
+								// Same wet-cell condition and iteration order as precaldia_comp.
+								// Reject BEFORE entering its ADMB wrapper. A normal return
+								// destroys local matrices; no exception crosses ADMB calls.
+								for (int i = map.imin; i <= map.imax; ++i) {
+									for (int j = map.jinf[i]; j <= map.jsup[i]; ++j) {
+										if (map.carte[i][j] > 0 && value(Habitat(i,j)) == 0.0) {
+											aat_rejection.detected = true;
+											aat_rejection.species = sp;
+											aat_rejection.age = age;
+											aat_rejection.i = i;
+											aat_rejection.j = j;
+											aat_rejection.step = t_count;
+											aat_rejection.year = year;
+											aat_rejection.month = month;
+											aat_rejection.day = day;
+											cout << "Zero habitat at " << age << " " << i << " " << j << endl;
+											return std::numeric_limits<double>::quiet_NaN();
+										}
+									}
+								}
+							}
+							pop.Precaldia_Caldia(map, *param, mat, Habitat, Total_pop, sp, age, tcur, jday);//checked
+						}	
 					}
 					if (!param->gcalc()){
 						// only in simulation mode: compute mean speed 
