@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 make
 objcopy --strip-all bin/seapodym bin/seapodym
 

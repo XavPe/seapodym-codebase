@@ -130,7 +130,7 @@ void VarSimtunaFunc::Ha_comp(VarParamCoupled& param, VarMatrices& mat, const PMa
 				double sfunc = mat.season_switch(sp,jday,j);
 
 				double Hf = value(Ha(i,j));
-				Ha.elem_value(i,j) = topo*(Hs(i,j)*sfunc + Hf*(1.0-sfunc));
+				Ha.elem_value(i,j) = topo*(Hs(i,j)*sfunc + Hf*(1.0-sfunc)) + 1e-16; // XAV : empêcher erreur "zero habitat" qui arrive parfois (Taylor)
 
 				//3. If not optimizing, will write habitat to DYM files
 				if (!param.gcalc()){

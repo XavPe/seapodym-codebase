@@ -293,10 +293,6 @@ void Hyperspace_projection(SeapodymCoupled& sc, dvar_vector x)
 	ofstream ofs;
 	const char* filename = "hyperproj.out";
 	ofs.open(filename, ios::out);
-	// Xavier ajout : set precision to maximum digits for double to avoid loss of precision in output
-	ofs << std::setprecision(std::numeric_limits<double>::max_digits10);
-	cout << std::setprecision(std::numeric_limits<double>::max_digits10);
-	// Xavier ajout - fin
 	for (int n=0; n<sc.param->nb_varproj; n++)
 		ofs << sc.param->varproj[n] << " ";
 	ofs << "\n" << n1 << " " << n2 << "\n"; 
