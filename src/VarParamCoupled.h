@@ -58,6 +58,12 @@ public:
 	double get_parval(int idx){ return dvarpars[idx]; }
 	dvector get_parvals(void){ return dvarpars; }
 
+    // Read-only native metadata for local finite differences.
+    double fd_lower(int i) const { return dvarpars_min[i]; }
+    double fd_upper(int i) const { return dvarpars_max[i]; }
+    std::string fd_path(int i) const { return parfile_names[i-1]; }
+    std::string fd_species(int i) const { return parameter_species.at(i-1); }
+
 	void outp_param(adstring_array x_names, const int nvars);
 	void get_param_index(ivector& ix, dmatrix& xy, dmatrix& pars);
 	double par_init_lo(int ix, double eps);

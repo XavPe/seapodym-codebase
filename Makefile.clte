@@ -25,6 +25,7 @@ NishikawaLike.h
 SRCS= \
 Cmdopt.cpp \
 main.cpp \
+FdPoint.cpp \
 ad_buffers.cpp \
 XMLDocument2.cpp \
 VarParamCoupled.cpp \

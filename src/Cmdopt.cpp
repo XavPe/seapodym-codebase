@@ -69,6 +69,8 @@ void Cmdopt::OptionToCode(char* op) {
 
 void Cmdopt::help(char* argv0) {
 
+	cout << "FD mode: " << argv0 << " --fd-point --help\n";
+
 	cout << "Usage:" << argv0 << " [option] parfile \n";
 	cout << "      IMPORTANT!!! If [option] is omitted, then application will start optimization run! \n"; 
 	cout << "Options: \n";
