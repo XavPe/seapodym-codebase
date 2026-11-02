@@ -1,4 +1,6 @@
 #include <fvar.hpp>
+#include <iomanip>
+#include <limits>
 #include "SeapodymCoupled.h"
 #include "Cmdopt.h"
 #include "AatExport.h"
@@ -7,9 +9,27 @@ string get_path(const char* full_path);
 double run_model(SeapodymCoupled& sc, dvar_vector x, dvector& g, const int nvar);
 double run_sim(SeapodymCoupled& sc, dvar_vector x);
 
+namespace {
+// Preserve the caller's formatting; model evaluations may reset cout precision.
+class HessianPrecisionGuard {
+    std::ostream& stream_;
+    std::streamsize precision_;
+    std::ios_base::fmtflags flags_;
+public:
+    explicit HessianPrecisionGuard(std::ostream& stream)
+        : stream_(stream), precision_(stream.precision()), flags_(stream.flags()) {}
+    ~HessianPrecisionGuard() { stream_.flags(flags_); stream_.precision(precision_); }
+    void full_precision() {
+        stream_ << std::defaultfloat
+                << std::setprecision(std::numeric_limits<double>::max_digits10);
+    }
+};
+}
+
 ///1. Option for computing Hessian matrix
 void Hessian_comp(const char* parfile)
 {
+	HessianPrecisionGuard log_precision(cout);
 	SeapodymCoupled sc(parfile);
 
 	//values to solve for
@@ -35,6 +55,7 @@ void Hessian_comp(const char* parfile)
 	cout << "\nstarting computing Hessian" << endl;
 	likelihood = run_model(sc,x,g1,nvar);
 	
+	log_precision.full_precision();
 	cout << "Likelihood and Gradient for estimated vector: \n" << likelihood << "; " << g1 << endl;
 	
 	//bound-aware one-sided FD Hessian with Richardson extrapolation.
@@ -55,6 +76,7 @@ void Hessian_comp(const char* parfile)
 
 		H(ix) = (H2-epsilon*H1)/(1-epsilon); //1. step correction
 
+		log_precision.full_precision();
 		cout << ix << ".\t"<< H(ix) << endl;
 
 		x(ix) = xs;
@@ -135,6 +157,7 @@ void Hessian_comp(const char* parfile)
 	for (int it=0; it<500; it++){ vcol = Corr*vcol; double nv = norm(vcol); if (nv>0.0) vcol /= nv; }
 	double vinfl = vcol*(Corr*vcol);
 
+	log_precision.full_precision();
 	cout << "\n--- convergence / identifiability diagnostics ---" << endl;
 	cout << "L = " << likelihood << " ; Gmax = " << gmax << " (scale-dependent; not used for convergence)" << endl;
 	cout << "Newton decrement^2 = " << lambda2
@@ -146,6 +169,7 @@ void Hessian_comp(const char* parfile)
 	ofstream ofs;
 	const char* filename = "Hessian.out";
 	ofs.open(filename, ios::out);
+	ofs << std::defaultfloat << std::setprecision(std::numeric_limits<double>::max_digits10);
 	ofs << nvar << "\n\n";
 
 	ofs << "Parameter\tEstimate\tGradient\tStdErr\tCV\tNewtonStep\tNewtonStep/SE\n";
@@ -186,9 +210,7 @@ void Hessian_comp(const char* parfile)
 		for (int j=i+1; j<=nvar; j++)
 			if (fabs(Corr(i,j)) > 0.8){
 				const char* mark = (fabs(Corr(i,j)) > 0.95) ? "**" : (fabs(Corr(i,j)) > 0.9) ? "*" : "";
-				char rbuf[16];
-				snprintf(rbuf, sizeof rbuf, "%.2f", Corr(i,j));
-				ofs << x_names[i] << "\t" << x_names[j] << "\t" << rbuf << mark << "\n";
+				ofs << x_names[i] << "\t" << x_names[j] << "\t" << Corr(i,j) << mark << "\n";
 			}
 	ofs << "\n";
 
