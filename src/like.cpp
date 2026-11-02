@@ -97,6 +97,7 @@ dvariable SeapodymCoupled::like(const int sp, const int k, const int f, const in
         	}
 		likelihood = fw_catch * likelihood;
 		clike_fishery[f] += value(likelihood);
+		if (fd_adjoint_target==1) fd_selected(1) += likelihood;
 		//}
 	}
 
@@ -111,6 +112,7 @@ dvariable SeapodymCoupled::like(const int sp, const int k, const int f, const in
 		dvariable lf_like = fw_length * LFlike_robust(mat.LF_qtr_obs(sp),mat.dvarLF_est(sp),
 						  a0,nb_ages,nb_regions_sp,k);
 		lflike_fishery[f] += value(lf_like);
+		if (fd_adjoint_target==2) fd_selected(1) += lf_like;
 		//lflike += value(lf_like);
 
 		likelihood += lf_like;
@@ -129,6 +131,7 @@ double SeapodymCoupled::get_stock_like(dvariable total_stock, dvariable& likelih
 			if (total_stock > mean_total_stock_obs){
 				dvariable slike = 0.5*pow(total_stock-mean_total_stock_obs,2);
 				likelihood += slike;
+				if (fd_adjoint_target==3) fd_selected(1) += slike;
 				stocklike  += value(slike);
 			}
 		}
@@ -180,6 +183,7 @@ double SeapodymCoupled::get_early_like(dvariable& likelihood, dvar_matrix& Agg_p
 					lkhd = early_like(like_type, L_obs, N_pred, weight_Lobszero, likelihood_penalty, what);
 				}
 				likelihood += like_weight*lkhd;
+                if (fd_adjoint_target==(what=="larvae" ? 5 : 6)) fd_selected(1) += like_weight*lkhd;
 				like += like_weight*value(lkhd);
 			}
 		}
@@ -230,6 +234,7 @@ double SeapodymCoupled::get_early_like(dvariable& likelihood, dvar_matrix& pred,
 						lkhd = early_like(like_type, L_obs, N_pred, weight_Lobszero, likelihood_penalty, what);
 					}
 					likelihood += like_weight*lkhd;
+                if (fd_adjoint_target==(what=="larvae" ? 5 : 6)) fd_selected(1) += like_weight*lkhd;
 					like += like_weight*value(lkhd);
 				}
 			}

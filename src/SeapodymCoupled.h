@@ -23,6 +23,12 @@ public:
 	}
 	virtual ~SeapodymCoupled(){/*DoesNothing*/};
 
+    // Optional exact-point diagnostics only; no allocation in historical modes.
+    int fd_adjoint_target = -1;
+    dvar_vector fd_selected;
+    double fd_full_likelihood = 0.0;
+    double fd_penalty_value = 0.0;
+
 	double get_clike() { return sum(clike_fishery); }
 	double get_lflike() { return lflike; }
 	double get_stocklike() { return stocklike; }

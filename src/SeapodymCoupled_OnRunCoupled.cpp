@@ -96,6 +96,7 @@ double SeapodymCoupled::OnRunCoupled(dvar_vector x, const bool writeoutputfiles)
 	stocklike = 0.0;
 	larvaelike = 0.0;
 	spawninglike = 0.0;
+	if (fd_adjoint_target>=0) fd_selected(1)=0.0;
 	dvariable likelihood = 0.0;
 	dvariable total_stock = 0.0;
 	lflike_fishery.initialize();
@@ -720,6 +721,17 @@ Mortality.initialize();
 			OutputLikelihoodsFishery();
 	}
 
+    fd_penalty_value = param->scalc() ? 0.0 : value(penalty);
+    if (fd_adjoint_target>=0) {
+        fd_full_likelihood = value(likelihood);
+        if (fd_adjoint_target==0) fd_selected(1)=likelihood;
+        else if (fd_adjoint_target==7) {
+            if (param->scalc()) fd_selected(1)=0.0;
+            else fd_selected(1)=penalty;
+        }
+        // Selected scalar is last on the tape; caller performs one reverse pass.
+        likelihood=fd_selected(1);
+    }
 	return value(likelihood);
 }
 
