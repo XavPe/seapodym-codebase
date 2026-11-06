@@ -1,4 +1,5 @@
 #include "calpop.h"
+#include "UpwindSplit.h"
 
 ///Main function with memory control and adjoint functions for: 
 ///precaldia and caldia functions, which perform discrete approximation
@@ -1010,10 +1011,17 @@ void dfybet_comp(dmatrix& dfybet, dmatrix& dfd, dmatrix& dfe, dmatrix& dff, cons
 
 void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, double& dfuinf, const double uinf, const double twodd, const double d)
 {
+	const double width = seapodym_upwind::epsilon();
 	switch (pos){
         case SANS:		
 		case D_FERME:
-			if (uinf > 0){	
+			if (seapodym_upwind::in_band(uinf, width)) {
+				const auto split = seapodym_upwind::inside_split(uinf, width);
+				dfsigmam -= (1/twodd) * dfd1;
+				dfsigma  -= (1/twodd) * dfd1;
+				dfuinf   -= (split.d_positive/d) * dfd1;
+				dfd1      = 0.0;
+			} else if (uinf > 0){
 	                    	//d1 = -((sigmam+sigma)/twodd)-uinf/d;
 				dfsigmam -= (1/twodd) * dfd1;
 				dfsigma  -= (1/twodd) * dfd1;
@@ -1032,9 +1040,17 @@ void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, 
 
 void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, double& dfsigmap, double& dfu, const double u, const double twodd, const double d)
 {
+	const double width = seapodym_upwind::epsilon();
 	switch (pos){
 	        case SANS:
-			if (u > 0){
+			if (seapodym_upwind::in_band(u, width)) {
+				const auto split = seapodym_upwind::inside_split(u, width);
+				dfsigmam += (1/twodd) * dfd2;
+				dfsigma  += (2/twodd) * dfd2;
+				dfsigmap += (1/twodd) * dfd2;
+				dfu      += ((split.d_positive-split.d_negative)/d) * dfd2;
+				dfd2      = 0.0;
+			} else if (u > 0){
 				//d2 = ((sigmam+2*sigma+sigmap)/twodd)+u/d;
 				dfsigmam += (1/twodd) * dfd2;
 				dfsigma  += (2/twodd) * dfd2;
@@ -1052,7 +1068,13 @@ void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, 
 		break;
 
 		case G_FERME:
-			if (u > 0){
+			if (seapodym_upwind::in_band(u, width)) {
+				const auto split = seapodym_upwind::inside_split(u, width);
+				dfsigma  += (1/twodd) * dfd2;
+				dfsigmap += (1/twodd) * dfd2;
+				dfu      += (split.d_positive/d) * dfd2;
+				dfd2      = 0.0;
+			} else if (u > 0){
 				//d2 = ((sigma+sigmap)/twodd)+u/d;
 				dfsigma  += (1/twodd) * dfd2;
 				dfsigmap += (1/twodd) * dfd2;
@@ -1067,7 +1089,13 @@ void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, 
 		break;
 
 		case D_FERME:
-			if (u > 0){
+			if (seapodym_upwind::in_band(u, width)) {
+				const auto split = seapodym_upwind::inside_split(u, width);
+				dfsigmam += (1/twodd) * dfd2;
+				dfsigma  += (1/twodd) * dfd2;
+				dfu      -= (split.d_negative/d) * dfd2;
+				dfd2      = 0.0;
+			} else if (u > 0){
 				//d2 = ((sigmam+sigma)/twodd);
 				dfsigmam += (1/twodd) * dfd2;
 				dfsigma  += (1/twodd) * dfd2;
@@ -1085,10 +1113,17 @@ void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, 
 
 void dfd3_comp(const char pos, double& dfd3, double& dfsigma, double& dfsigmap, double& dfusup, const double usup, const double twodd, const double d)
 {
+	const double width = seapodym_upwind::epsilon();
 	switch (pos){
         	case SANS:
 			case G_FERME:
-			if (usup > 0){	
+			if (seapodym_upwind::in_band(usup, width)) {
+				const auto split = seapodym_upwind::inside_split(usup, width);
+				dfsigma  -= (1/twodd) * dfd3;
+				dfsigmap -= (1/twodd) * dfd3;
+				dfusup   += (split.d_negative/d) * dfd3;
+				dfd3      = 0.0;
+			} else if (usup > 0){
 	                    	//d3 = -((sigma+sigmap)/twodd);
 				dfsigma  -= (1/twodd) * dfd3;
 				dfsigmap -= (1/twodd) * dfd3;
