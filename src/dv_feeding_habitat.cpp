@@ -558,7 +558,7 @@ void dv_Ha_comp(void)
 
                                         Hf += f_access * F;
                                 }
-                                double Hf_func = param->smin1_h(Hf);
+                                double Hf_func = topo*param->smin1_h(Hf) + 1e-16; //XAV test debug
 				
 
 				double dfHf = 0.0;
