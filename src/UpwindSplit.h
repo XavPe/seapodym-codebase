@@ -5,24 +5,19 @@
 #include <cmath>
 #include <cstdlib>
 #include <stdexcept>
+#include <string>
 
 namespace seapodym_upwind {
 
-inline double epsilon()
+inline double parse_epsilon(const char* text, const char* setting)
 {
-    static const double width = [] {
-        const char* text = std::getenv("SEAPODYM_UPWIND_EPSILON");
-        if (!text) return 0.0;
-
-        char* end = nullptr;
-        errno = 0;
-        const double value = std::strtod(text, &end);
-        if (end == text || *end || errno == ERANGE || !std::isfinite(value) || value < 0.0) {
-            throw std::invalid_argument("SEAPODYM_UPWIND_EPSILON must be finite and nonnegative");
-        }
-        return value;
-    }();
-    return width;
+    char* end = nullptr;
+    errno = 0;
+    const double value = std::strtod(text, &end);
+    if (end == text || *end || errno == ERANGE || !std::isfinite(value) || value < 0.0) {
+        throw std::invalid_argument(std::string(setting) + " must be finite and nonnegative");
+    }
+    return value;
 }
 
 inline bool in_band(double velocity, double width)

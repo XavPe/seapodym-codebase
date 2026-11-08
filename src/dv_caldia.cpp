@@ -16,9 +16,9 @@ void f_accessibility(dvector& l_access, dvector& lf_access, const dvector forage
 		const int nb_forage, const ivector day_layer, const ivector night_layer, const double DL);
 
 void dfybet_comp(dmatrix& dfybet, dmatrix& dfd, dmatrix& dfe, dmatrix& dff, const dmatrix d, const dmatrix e, const dmatrix f, unsigned long int pos_map, const int maxn, const int dt);
-void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, double& dfuinf, const double uinf, const double twodd, const double d);
-void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, double& dfsigmap, double& dfu, const double u, const double twodd, const double d);
-void dfd3_comp(const char pos, double& dfd3, double& dfsigma, double& dfsigmap, double& dfusup, const double usup, const double twodd, const double d);
+void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, double& dfuinf, const double uinf, const double twodd, const double d, double width);
+void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, double& dfsigmap, double& dfu, const double u, const double twodd, const double d, double width);
+void dfd3_comp(const char pos, double& dfd3, double& dfsigma, double& dfsigmap, double& dfusup, const double usup, const double twodd, const double d, double width);
 void dfdh_comp(const char pos, double& dfHinf, double& dfH, double& dfHsup, double dfdh, const double d);
 void dfdhx_comp(const char pos, double& dfHinf, double& dfH, double& dfHsup, double dfdh, const double habitat, const double habitat_sup, const double habitat_inf, const double d);
 void dfdhy_comp(const char pos, double& dfHinf, double& dfH, double& dfHsup, double dfdh, const double habitat, const double habitat_sup, const double habitat_inf, const double d);
@@ -178,6 +178,7 @@ void dv_caldia()
 	const int dt   = 2*pop->get_iterationN();
 	const int maxn = pop->get_maxn();
 	const double Vinf = pop->get_Vinf();
+	const double width = pop->get_upwind_smoothing_width();
 	double dx      = param->deltaX;
 	double twodxdx = 2*dx*dx;
 	double dy      = param->deltaY;
@@ -216,13 +217,13 @@ void dv_caldia()
 			char pos  = bord.cotey();
 
 			//f[i][j] = d3(pos, sigma, sigmap, vsup, twodydy, dydy, dy);
-			dfd3_comp(pos, dff(i,j), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j+1), adv_y(i,j+1), twodydy, dy);
+			dfd3_comp(pos, dff(i,j), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j+1), adv_y(i,j+1), twodydy, dy, width);
 
 			//e[i][j] = d2(pos, sigmam, sigma, sigmap, v, twodydy, dydy, dy, dt);
-			dfd2_comp(pos, dfe(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j), adv_y(i,j), twodydy, dy);
+			dfd2_comp(pos, dfe(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j), adv_y(i,j), twodydy, dy, width);
 
 			//d[i][j] = d1(pos, sigmam, sigma, vinf, twodydy, dydy, dy);
-			dfd1_comp(pos, dfd(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfAdv_y(i,j-1), adv_y(i,j-1), twodydy, dy);
+			dfd1_comp(pos, dfd(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfAdv_y(i,j-1), adv_y(i,j-1), twodydy, dy, width);
 		}
 	}
 
@@ -232,13 +233,13 @@ void dv_caldia()
 			char pos  = bord.cotex();
 
 			//c[j][i] = d3(pos, sigma, sigmap, usup, twodxdx, dxdx, dx);
-			dfd3_comp(pos, dfc(j,i), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i+1,j), adv_x(i+1,j), twodxdx, dx);
+			dfd3_comp(pos, dfc(j,i), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i+1,j), adv_x(i+1,j), twodxdx, dx, width);
 
 			//b[j][i] = d2(pos, sigmam, sigma, sigmap, u, twodxdx, dxdx, dx);
-			dfd2_comp(pos, dfb(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i,j), adv_x(i,j), twodxdx, dx);
+			dfd2_comp(pos, dfb(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i,j), adv_x(i,j), twodxdx, dx, width);
 
 			//a[j][i] = d1(pos, sigmam, sigma, uinf, twodxdx, dx);
-			dfd1_comp(pos, dfa(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfAdv_x(i-1,j), adv_x(i-1,j), twodxdx, dx);
+			dfd1_comp(pos, dfa(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfAdv_x(i-1,j), adv_x(i-1,j), twodxdx, dx, width);
 		}
 	}
 
@@ -537,6 +538,7 @@ void dv_caldia_UV()
 	const int dt   = 2*pop->get_iterationN();
 	const int maxn = pop->get_maxn();
 	const double Vinf = pop->get_Vinf();
+	const double width = pop->get_upwind_smoothing_width();
 	double dx      = param->deltaX;
 	double twodxdx = 2*dx*dx;
 	double dy      = param->deltaY;
@@ -647,13 +649,13 @@ void dv_caldia_UV()
 			char pos  = bord.cotey();
 
 			//f[i][j] = d3(pos, sigma, sigmap, vsup, twodydy, dydy, dy);
-			dfd3_comp(pos, dff(i,j), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j+1), adv_y(i,j+1), twodydy, dy);
+			dfd3_comp(pos, dff(i,j), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j+1), adv_y(i,j+1), twodydy, dy, width);
 
 			//e[i][j] = d2(pos, sigmam, sigma, sigmap, v, twodydy, dydy, dy, dt);
-			dfd2_comp(pos, dfe(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j), adv_y(i,j), twodydy, dy);
+			dfd2_comp(pos, dfe(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j), adv_y(i,j), twodydy, dy, width);
 
 			//d[i][j] = d1(pos, sigmam, sigma, vinf, twodydy, dydy, dy);
-			dfd1_comp(pos, dfd(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfAdv_y(i,j-1), adv_y(i,j-1), twodydy, dy);
+			dfd1_comp(pos, dfd(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfAdv_y(i,j-1), adv_y(i,j-1), twodydy, dy, width);
 		}
 	}
 
@@ -663,13 +665,13 @@ void dv_caldia_UV()
 			char pos  = bord.cotex();
 
 			//c[j][i] = d3(pos, sigma, sigmap, usup, twodxdx, dxdx, dx);
-			dfd3_comp(pos, dfc(j,i), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i+1,j), adv_x(i+1,j), twodxdx, dx);
+			dfd3_comp(pos, dfc(j,i), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i+1,j), adv_x(i+1,j), twodxdx, dx, width);
 
 			//b[j][i] = d2(pos, sigmam, sigma, sigmap, u, twodxdx, dxdx, dx);
-			dfd2_comp(pos, dfb(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i,j), adv_x(i,j), twodxdx, dx);
+			dfd2_comp(pos, dfb(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i,j), adv_x(i,j), twodxdx, dx, width);
 
 			//a[j][i] = d1(pos, sigmam, sigma, uinf, twodxdx, dx);
-			dfd1_comp(pos, dfa(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfAdv_x(i-1,j), adv_x(i-1,j), twodxdx, dx);
+			dfd1_comp(pos, dfa(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfAdv_x(i-1,j), adv_x(i-1,j), twodxdx, dx, width);
 		}
 	}
 
@@ -1009,9 +1011,8 @@ void dfybet_comp(dmatrix& dfybet, dmatrix& dfd, dmatrix& dfe, dmatrix& dff, cons
 	}
 }
 
-void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, double& dfuinf, const double uinf, const double twodd, const double d)
+void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, double& dfuinf, const double uinf, const double twodd, const double d, double width)
 {
-	const double width = seapodym_upwind::epsilon();
 	switch (pos){
         case SANS:		
 		case D_FERME:
@@ -1038,9 +1039,8 @@ void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, 
 	}
 }
 
-void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, double& dfsigmap, double& dfu, const double u, const double twodd, const double d)
+void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, double& dfsigmap, double& dfu, const double u, const double twodd, const double d, double width)
 {
-	const double width = seapodym_upwind::epsilon();
 	switch (pos){
 	        case SANS:
 			if (seapodym_upwind::in_band(u, width)) {
@@ -1111,9 +1111,8 @@ void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, 
 	}
 }
 
-void dfd3_comp(const char pos, double& dfd3, double& dfsigma, double& dfsigmap, double& dfusup, const double usup, const double twodd, const double d)
+void dfd3_comp(const char pos, double& dfd3, double& dfsigma, double& dfsigmap, double& dfusup, const double usup, const double twodd, const double d, double width)
 {
-	const double width = seapodym_upwind::epsilon();
 	switch (pos){
         	case SANS:
 			case G_FERME:

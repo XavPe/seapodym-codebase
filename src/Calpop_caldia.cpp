@@ -154,7 +154,7 @@ double CCalpop::d1(const char pos, const double sigmam, const double sigma, cons
 					const double twodd, const double dd, const double d)
 {
 	double value = 0;
-	const double width = seapodym_upwind::epsilon();
+	const double width = upwind_smoothing_width;
 	switch (pos){
         case SANS:			// si frontieres ouvertes
 		case D_FERME:			// ou fermee a droite seulement
@@ -175,7 +175,7 @@ double CCalpop::d2(const char pos, const double sigmam, const double sigma, cons
 					const double u, const double twodd, const double dd, const double d, const int dt)
 {
 	double value = 0;
-	const double width = seapodym_upwind::epsilon();
+	const double width = upwind_smoothing_width;
 	switch (pos){
 	        case SANS:
 			if (seapodym_upwind::in_band(u, width)) {
@@ -223,7 +223,7 @@ double CCalpop::d2(const char pos, const double sigmam, const double sigma, cons
 double CCalpop::d3(const char pos, const double sigma, const double sigmap, const double usup,
 					const double twodd, const double dd, const double d){
 	double value = 0;
-	const double width = seapodym_upwind::epsilon();
+	const double width = upwind_smoothing_width;
     	switch (pos) {
         	case SANS:
 			case G_FERME:
