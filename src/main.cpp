@@ -1,5 +1,6 @@
 #include "Cmdopt.h"
 #include <cstring>
+#include <iostream>
 
 int seapodym_fd_point(int argc, char** argv);
 
@@ -18,7 +19,7 @@ int main(int argc, char** argv) {
         return seapodym_fd_point(argc - 1, argv + 1);
     }
 
-	Cmdopt cmdopt(argc, argv);
+	Cmdopt cmdopt(argc, argv, BIN_OPTIMIZATION);
 
 	if (cmdopt.cmp_regime!=-11)
 		return seapodym_coupled(argv[argc-1], &cmdopt);
