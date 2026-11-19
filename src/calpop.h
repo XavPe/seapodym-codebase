@@ -121,6 +121,7 @@ public:
 	int get_maxn(){return maxn;}
 	double get_Vinf(){return Vinf;}
 	double get_upwind_smoothing_width() const { return upwind_smoothing_width; }
+	seapodym_upwind::Mode get_upwind_smoothing_mode() const { return upwind_smoothing_mode; }
 	//void set_gradcalc(bool flag){_gradcalc = flag;}
 
 private:
@@ -175,6 +176,7 @@ public:
 
 private:
 	double upwind_smoothing_width = 0.0;
+	seapodym_upwind::Mode upwind_smoothing_mode = seapodym_upwind::Mode::QuadraticC1;
 	void xbet_comp(const PMap& map);
 	void ybet_comp(const PMap& map);
 

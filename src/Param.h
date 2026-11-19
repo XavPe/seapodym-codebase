@@ -16,6 +16,7 @@
 using  namespace std;
 
 #include "mytypes.h"
+#include "UpwindSplit.h"
 //#include "ReadWrite.h"
 
 /*!
@@ -127,6 +128,8 @@ public:
 	double	deltaY;		// dy (constant)
 	int	deltaT;		// dt (constant)
 	double upwind_smoothing_epsilon = 0.0; // transport solver units
+	seapodym_upwind::Mode upwind_smoothing_mode = seapodym_upwind::Mode::QuadraticC1;
+	double habitat_gradient_smoothing_eta = 0.0; // units of grid step times habitat gradient
 	int	nlevel;
 	double	startdate, enddate;
 	int	ndatini, ndatfin;

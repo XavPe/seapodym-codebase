@@ -1,3 +1,4 @@
+#include "Regularization.h"
 #include "calpop.h"
 
 void f_accessibility(dvector& l_access, dvector& lf_access, const dvector forage, const dvector O2, const dvector T, double twosigsq, double temp_age, double oxy_teta, double oxy_cr, const int nl, const int nb_forage, const ivector day_layer, const ivector night_layer, const double DL);
@@ -335,7 +336,7 @@ double D = Dinf * diff_habitat_comp(dform, habitat(i,j), sigma_species, c_diff_f
 
 
 				double rho_y = 0.0;
-				rho_y = 1.0- rho * sqrt(dHdy*dHdy) * dy;
+				rho_y = 1.0- rho * seapodym_regularization::habitat_abs(dHdy, dy, param.habitat_gradient_smoothing_eta) * dy;
 
 				double U = mat.un[t_count][0][i][j]; double V = mat.vn[t_count][0][i][j];
 
@@ -458,7 +459,7 @@ double D = Dinf * diff_habitat_comp(dform, habitat(i,j), sigma_species, c_diff_f
 				D = (0.9*D*sfunc + D*(1.0-sfunc));
 
 				double rho_y = 0.0;
-				rho_y = 1.0- rho * sqrt(dHdy*dHdy) * dy;
+				rho_y = 1.0- rho * seapodym_regularization::habitat_abs(dHdy, dy, param.habitat_gradient_smoothing_eta) * dy;
 
 				double U = u(i,j); double V = v(i,j);
 				double C = sqrt(U*U+V*V);
@@ -584,8 +585,8 @@ double D = Dinf * diff_habitat_comp(dform, habitat(i,j), sigma_species, c_diff_f
 				double rho_x = 0.0;
 				double rho_y = 0.0;
 
-				rho_x = 1.0- rho * sqrt(dHdx*dHdx) * dx;
-				rho_y = 1.0- rho * sqrt(dHdy*dHdy) * dy;
+				rho_x = 1.0- rho * seapodym_regularization::habitat_abs(dHdx, dx, param.habitat_gradient_smoothing_eta) * dx;
+				rho_y = 1.0- rho * seapodym_regularization::habitat_abs(dHdy, dy, param.habitat_gradient_smoothing_eta) * dy;
 
 				double U = mat.un[t_count][0][i][j]; double V = mat.vn[t_count][0][i][j];
 
@@ -765,8 +766,8 @@ double D = Dinf * diff_habitat_comp(dform, habitat(i,j), sigma_species, c_diff_f
 				double rho_x = 0.0;
 				double rho_y = 0.0;
 
-				rho_x = 1.0- rho * sqrt(dHdx*dHdx) * dx;
-				rho_y = 1.0- rho * sqrt(dHdy*dHdy) * dy;
+				rho_x = 1.0- rho * seapodym_regularization::habitat_abs(dHdx, dx, param.habitat_gradient_smoothing_eta) * dx;
+				rho_y = 1.0- rho * seapodym_regularization::habitat_abs(dHdy, dy, param.habitat_gradient_smoothing_eta) * dy;
 
 				//recalculate U and V
 				l_access.initialize();

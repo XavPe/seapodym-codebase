@@ -4,6 +4,8 @@ AatRunStatus.h \
 Cmdopt.h \
 XMLDocument2.h \
 calpop.h \
+UpwindSplit.h \
+Regularization.h \
 Map.h \
 Matrices.h \
 Numfunc.h \

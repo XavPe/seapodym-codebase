@@ -159,7 +159,7 @@ double CCalpop::d1(const char pos, const double sigmam, const double sigma, cons
         case SANS:			// si frontieres ouvertes
 		case D_FERME:			// ou fermee a droite seulement
 			if (seapodym_upwind::in_band(uinf, width)) {
-				const auto split = seapodym_upwind::inside_split(uinf, width);
+				const auto split = seapodym_upwind::inside_split(uinf, width, upwind_smoothing_mode);
 				value = -((sigmam+sigma)/twodd) - (split.positive/d);
 			} else if (uinf > 0)
                     value =	-((sigmam+sigma)/twodd)
@@ -179,7 +179,7 @@ double CCalpop::d2(const char pos, const double sigmam, const double sigma, cons
 	switch (pos){
 	        case SANS:
 			if (seapodym_upwind::in_band(u, width)) {
-				const auto split = seapodym_upwind::inside_split(u, width);
+				const auto split = seapodym_upwind::inside_split(u, width, upwind_smoothing_mode);
 				value = ((sigmam+2*sigma+sigmap)/twodd) + ((split.positive-split.negative)/d) + dt;
 			} else if (u > 0)
 				value = ((sigmam+2*sigma+sigmap)/twodd)
@@ -191,7 +191,7 @@ double CCalpop::d2(const char pos, const double sigmam, const double sigma, cons
 
 		case G_FERME:
 			if (seapodym_upwind::in_band(u, width)) {
-				const auto split = seapodym_upwind::inside_split(u, width);
+				const auto split = seapodym_upwind::inside_split(u, width, upwind_smoothing_mode);
 				value = ((sigma+sigmap)/twodd) + (split.positive/d) + dt;
 			} else if (u > 0)
 				value = ((sigma+sigmap)/twodd)
@@ -203,7 +203,7 @@ double CCalpop::d2(const char pos, const double sigmam, const double sigma, cons
 
 		case D_FERME:
 			if (seapodym_upwind::in_band(u, width)) {
-				const auto split = seapodym_upwind::inside_split(u, width);
+				const auto split = seapodym_upwind::inside_split(u, width, upwind_smoothing_mode);
 				value = ((sigmam+sigma)/twodd) - (split.negative/d) + dt;
 			} else if (u > 0)
 				value = ((sigmam+sigma)/twodd)
@@ -228,7 +228,7 @@ double CCalpop::d3(const char pos, const double sigma, const double sigmap, cons
         	case SANS:
 			case G_FERME:
 			if (seapodym_upwind::in_band(usup, width)) {
-				const auto split = seapodym_upwind::inside_split(usup, width);
+				const auto split = seapodym_upwind::inside_split(usup, width, upwind_smoothing_mode);
 				value = -((sigma+sigmap)/twodd) + (split.negative/d);
 			} else if (usup > 0)
 					value = -((sigma+sigmap)/twodd);

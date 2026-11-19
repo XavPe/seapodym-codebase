@@ -1,3 +1,4 @@
+#include "Regularization.h"
 #include "calpop.h"
 #include "UpwindSplit.h"
 
@@ -16,9 +17,9 @@ void f_accessibility(dvector& l_access, dvector& lf_access, const dvector forage
 		const int nb_forage, const ivector day_layer, const ivector night_layer, const double DL);
 
 void dfybet_comp(dmatrix& dfybet, dmatrix& dfd, dmatrix& dfe, dmatrix& dff, const dmatrix d, const dmatrix e, const dmatrix f, unsigned long int pos_map, const int maxn, const int dt);
-void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, double& dfuinf, const double uinf, const double twodd, const double d, double width);
-void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, double& dfsigmap, double& dfu, const double u, const double twodd, const double d, double width);
-void dfd3_comp(const char pos, double& dfd3, double& dfsigma, double& dfsigmap, double& dfusup, const double usup, const double twodd, const double d, double width);
+void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, double& dfuinf, const double uinf, const double twodd, const double d, double width, seapodym_upwind::Mode mode);
+void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, double& dfsigmap, double& dfu, const double u, const double twodd, const double d, double width, seapodym_upwind::Mode mode);
+void dfd3_comp(const char pos, double& dfd3, double& dfsigma, double& dfsigmap, double& dfusup, const double usup, const double twodd, const double d, double width, seapodym_upwind::Mode mode);
 void dfdh_comp(const char pos, double& dfHinf, double& dfH, double& dfHsup, double dfdh, const double d);
 void dfdhx_comp(const char pos, double& dfHinf, double& dfH, double& dfHsup, double dfdh, const double habitat, const double habitat_sup, const double habitat_inf, const double d);
 void dfdhy_comp(const char pos, double& dfHinf, double& dfH, double& dfHsup, double dfdh, const double habitat, const double habitat_sup, const double habitat_inf, const double d);
@@ -179,6 +180,8 @@ void dv_caldia()
 	const int maxn = pop->get_maxn();
 	const double Vinf = pop->get_Vinf();
 	const double width = pop->get_upwind_smoothing_width();
+	const auto mode = pop->get_upwind_smoothing_mode();
+	const double eta = param->habitat_gradient_smoothing_eta;
 	double dx      = param->deltaX;
 	double twodxdx = 2*dx*dx;
 	double dy      = param->deltaY;
@@ -217,13 +220,13 @@ void dv_caldia()
 			char pos  = bord.cotey();
 
 			//f[i][j] = d3(pos, sigma, sigmap, vsup, twodydy, dydy, dy);
-			dfd3_comp(pos, dff(i,j), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j+1), adv_y(i,j+1), twodydy, dy, width);
+			dfd3_comp(pos, dff(i,j), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j+1), adv_y(i,j+1), twodydy, dy, width, mode);
 
 			//e[i][j] = d2(pos, sigmam, sigma, sigmap, v, twodydy, dydy, dy, dt);
-			dfd2_comp(pos, dfe(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j), adv_y(i,j), twodydy, dy, width);
+			dfd2_comp(pos, dfe(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j), adv_y(i,j), twodydy, dy, width, mode);
 
 			//d[i][j] = d1(pos, sigmam, sigma, vinf, twodydy, dydy, dy);
-			dfd1_comp(pos, dfd(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfAdv_y(i,j-1), adv_y(i,j-1), twodydy, dy, width);
+			dfd1_comp(pos, dfd(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfAdv_y(i,j-1), adv_y(i,j-1), twodydy, dy, width, mode);
 		}
 	}
 
@@ -233,13 +236,13 @@ void dv_caldia()
 			char pos  = bord.cotex();
 
 			//c[j][i] = d3(pos, sigma, sigmap, usup, twodxdx, dxdx, dx);
-			dfd3_comp(pos, dfc(j,i), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i+1,j), adv_x(i+1,j), twodxdx, dx, width);
+			dfd3_comp(pos, dfc(j,i), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i+1,j), adv_x(i+1,j), twodxdx, dx, width, mode);
 
 			//b[j][i] = d2(pos, sigmam, sigma, sigmap, u, twodxdx, dxdx, dx);
-			dfd2_comp(pos, dfb(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i,j), adv_x(i,j), twodxdx, dx, width);
+			dfd2_comp(pos, dfb(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i,j), adv_x(i,j), twodxdx, dx, width, mode);
 
 			//a[j][i] = d1(pos, sigmam, sigma, uinf, twodxdx, dx);
-			dfd1_comp(pos, dfa(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfAdv_x(i-1,j), adv_x(i-1,j), twodxdx, dx, width);
+			dfd1_comp(pos, dfa(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfAdv_x(i-1,j), adv_x(i-1,j), twodxdx, dx, width, mode);
 		}
 	}
 
@@ -366,8 +369,8 @@ void dv_caldia()
 				dfMSS_slope(i,j) += mss_species * unit_x * log(length) * dHdx  * dfv_x;
 				dfdhdx     += mss_species * unit_x * dfv_x;
 
-				double rho_x = 1.0 - rho * sqrt(dHdx*dHdx) * dx;
-				double rho_y = 1.0 - rho * sqrt(dHdy*dHdy) * dy;
+				double rho_x = 1.0 - rho * seapodym_regularization::habitat_abs(dHdx, dx, eta) * dx;
+				double rho_y = 1.0 - rho * seapodym_regularization::habitat_abs(dHdy, dy, eta) * dy;
 
 				double D = Dinf * pop->diff_habitat_comp(dform, habitat(i,j), sigma_species, c_diff_fish);
 
@@ -392,13 +395,17 @@ void dv_caldia()
 
 				//differentiate if rho depends on H!!!
 				//rho_x = 1.0 - 0.9 * sqrt(dHdx*dHdx) * dx; 			
-				if (dHdx > 0)
+				if (eta > 0.0) {
+					dfdhdx -= rho*dx * seapodym_regularization::habitat_abs_derivative(dHdx, dx, eta) * dfrho_x;
+				} else if (dHdx > 0)
 					dfdhdx -= rho*dx * dfrho_x;
 				else if (dHdx < 0)
 					dfdhdx += rho*dx * dfrho_x;
 				
 				//rho_y = 1.0 - 0.9 * sqrt(dHdy*dHdy) * dy;
-				if (dHdy > 0)
+				if (eta > 0.0) {
+					dfdhdy -= rho*dy * seapodym_regularization::habitat_abs_derivative(dHdy, dy, eta) * dfrho_y;
+				} else if (dHdy > 0)
 					dfdhdy -= rho*dy * dfrho_y;
 				else if (dHdy < 0)
 					dfdhdy += rho*dy * dfrho_y;
@@ -539,6 +546,8 @@ void dv_caldia_UV()
 	const int maxn = pop->get_maxn();
 	const double Vinf = pop->get_Vinf();
 	const double width = pop->get_upwind_smoothing_width();
+	const auto mode = pop->get_upwind_smoothing_mode();
+	const double eta = param->habitat_gradient_smoothing_eta;
 	double dx      = param->deltaX;
 	double twodxdx = 2*dx*dx;
 	double dy      = param->deltaY;
@@ -649,13 +658,13 @@ void dv_caldia_UV()
 			char pos  = bord.cotey();
 
 			//f[i][j] = d3(pos, sigma, sigmap, vsup, twodydy, dydy, dy);
-			dfd3_comp(pos, dff(i,j), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j+1), adv_y(i,j+1), twodydy, dy, width);
+			dfd3_comp(pos, dff(i,j), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j+1), adv_y(i,j+1), twodydy, dy, width, mode);
 
 			//e[i][j] = d2(pos, sigmam, sigma, sigmap, v, twodydy, dydy, dy, dt);
-			dfd2_comp(pos, dfe(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j), adv_y(i,j), twodydy, dy, width);
+			dfd2_comp(pos, dfe(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfDiff_y(i,j+1), dfAdv_y(i,j), adv_y(i,j), twodydy, dy, width, mode);
 
 			//d[i][j] = d1(pos, sigmam, sigma, vinf, twodydy, dydy, dy);
-			dfd1_comp(pos, dfd(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfAdv_y(i,j-1), adv_y(i,j-1), twodydy, dy, width);
+			dfd1_comp(pos, dfd(i,j), dfDiff_y(i,j-1), dfDiff_y(i,j), dfAdv_y(i,j-1), adv_y(i,j-1), twodydy, dy, width, mode);
 		}
 	}
 
@@ -665,13 +674,13 @@ void dv_caldia_UV()
 			char pos  = bord.cotex();
 
 			//c[j][i] = d3(pos, sigma, sigmap, usup, twodxdx, dxdx, dx);
-			dfd3_comp(pos, dfc(j,i), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i+1,j), adv_x(i+1,j), twodxdx, dx, width);
+			dfd3_comp(pos, dfc(j,i), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i+1,j), adv_x(i+1,j), twodxdx, dx, width, mode);
 
 			//b[j][i] = d2(pos, sigmam, sigma, sigmap, u, twodxdx, dxdx, dx);
-			dfd2_comp(pos, dfb(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i,j), adv_x(i,j), twodxdx, dx, width);
+			dfd2_comp(pos, dfb(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfDiff_x(i+1,j), dfAdv_x(i,j), adv_x(i,j), twodxdx, dx, width, mode);
 
 			//a[j][i] = d1(pos, sigmam, sigma, uinf, twodxdx, dx);
-			dfd1_comp(pos, dfa(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfAdv_x(i-1,j), adv_x(i-1,j), twodxdx, dx, width);
+			dfd1_comp(pos, dfa(j,i), dfDiff_x(i-1,j), dfDiff_x(i,j), dfAdv_x(i-1,j), adv_x(i-1,j), twodxdx, dx, width, mode);
 		}
 	}
 
@@ -816,8 +825,8 @@ void dv_caldia_UV()
 				double fV = 1.0 - expr2/(500.0*deltaT/30.0+expr2);
 
 				//recompute rho with correction through passive transport
-				double rho_x = fV*(1.0 - rho * sqrt(dHdx*dHdx) * dx);
-				double rho_y = fV*(1.0 - rho * sqrt(dHdy*dHdy) * dy);
+				double rho_x = fV*(1.0 - rho * seapodym_regularization::habitat_abs(dHdx, dx, eta) * dx);
+				double rho_y = fV*(1.0 - rho * seapodym_regularization::habitat_abs(dHdy, dy, eta) * dy);
 
 				//finally, contribution to derivatives dfU and dfV through c and r
 				//const double c = 1.0-r*length/lmax;
@@ -853,10 +862,10 @@ void dv_caldia_UV()
 
 	
 				//double rho_x = fV*(1.0 - rho * sqrt(dHdx*dHdx) * dx);
-				double dffV = (1.0 - rho * sqrt(dHdx*dHdx) * dx) * dfrho_x;
+				double dffV = (1.0 - rho * seapodym_regularization::habitat_abs(dHdx, dx, eta) * dx) * dfrho_x;
 
 				//double rho_y = fV*(1.0 - rho * sqrt(dHdy*dHdy) * dy); 
-				dffV += (1.0 - rho * sqrt(dHdy*dHdy) * dy) * dfrho_y;
+				dffV += (1.0 - rho * seapodym_regularization::habitat_abs(dHdy, dy, eta) * dy) * dfrho_y;
 				
 				//contribution to derivatives dfU and dfV through fV in rho
 				//double fV = 1.0 - expr2/(600.0+expr2);
@@ -869,7 +878,9 @@ void dv_caldia_UV()
 				}
 				//differentiate if rho depends on H!!!
 				//rho_x = 1.0 - 0.9 * sqrt(dHdx*dHdx) * dx; 			
-				if (dHdx > 0)
+				if (eta > 0.0) {
+					dfdhdx -= rho*dx*fV * seapodym_regularization::habitat_abs_derivative(dHdx, dx, eta) * dfrho_x;
+				} else if (dHdx > 0)
 					//dfdhdx -= rho*dx * dfrho_x;
 					dfdhdx -= rho*dx*fV * dfrho_x;
 				else if (dHdx < 0)
@@ -877,7 +888,9 @@ void dv_caldia_UV()
 					dfdhdx += rho*dx*fV * dfrho_x;
 				
 				//rho_y = 1.0 - 0.9 * sqrt(dHdy*dHdy) * dy;
-				if (dHdy > 0)
+				if (eta > 0.0) {
+					dfdhdy -= rho*dy*fV * seapodym_regularization::habitat_abs_derivative(dHdy, dy, eta) * dfrho_y;
+				} else if (dHdy > 0)
 					//dfdhdy -= rho*dy * dfrho_y;
 					dfdhdy -= rho*dy*fV * dfrho_y;
 				else if (dHdy < 0)
@@ -1011,13 +1024,13 @@ void dfybet_comp(dmatrix& dfybet, dmatrix& dfd, dmatrix& dfe, dmatrix& dff, cons
 	}
 }
 
-void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, double& dfuinf, const double uinf, const double twodd, const double d, double width)
+void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, double& dfuinf, const double uinf, const double twodd, const double d, double width, seapodym_upwind::Mode mode)
 {
 	switch (pos){
         case SANS:		
 		case D_FERME:
 			if (seapodym_upwind::in_band(uinf, width)) {
-				const auto split = seapodym_upwind::inside_split(uinf, width);
+				const auto split = seapodym_upwind::inside_split(uinf, width, mode);
 				dfsigmam -= (1/twodd) * dfd1;
 				dfsigma  -= (1/twodd) * dfd1;
 				dfuinf   -= (split.d_positive/d) * dfd1;
@@ -1039,12 +1052,12 @@ void dfd1_comp(const char pos, double& dfd1, double& dfsigmam, double& dfsigma, 
 	}
 }
 
-void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, double& dfsigmap, double& dfu, const double u, const double twodd, const double d, double width)
+void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, double& dfsigmap, double& dfu, const double u, const double twodd, const double d, double width, seapodym_upwind::Mode mode)
 {
 	switch (pos){
 	        case SANS:
 			if (seapodym_upwind::in_band(u, width)) {
-				const auto split = seapodym_upwind::inside_split(u, width);
+				const auto split = seapodym_upwind::inside_split(u, width, mode);
 				dfsigmam += (1/twodd) * dfd2;
 				dfsigma  += (2/twodd) * dfd2;
 				dfsigmap += (1/twodd) * dfd2;
@@ -1069,7 +1082,7 @@ void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, 
 
 		case G_FERME:
 			if (seapodym_upwind::in_band(u, width)) {
-				const auto split = seapodym_upwind::inside_split(u, width);
+				const auto split = seapodym_upwind::inside_split(u, width, mode);
 				dfsigma  += (1/twodd) * dfd2;
 				dfsigmap += (1/twodd) * dfd2;
 				dfu      += (split.d_positive/d) * dfd2;
@@ -1090,7 +1103,7 @@ void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, 
 
 		case D_FERME:
 			if (seapodym_upwind::in_band(u, width)) {
-				const auto split = seapodym_upwind::inside_split(u, width);
+				const auto split = seapodym_upwind::inside_split(u, width, mode);
 				dfsigmam += (1/twodd) * dfd2;
 				dfsigma  += (1/twodd) * dfd2;
 				dfu      -= (split.d_negative/d) * dfd2;
@@ -1111,13 +1124,13 @@ void dfd2_comp(const char pos, double& dfd2, double& dfsigmam, double& dfsigma, 
 	}
 }
 
-void dfd3_comp(const char pos, double& dfd3, double& dfsigma, double& dfsigmap, double& dfusup, const double usup, const double twodd, const double d, double width)
+void dfd3_comp(const char pos, double& dfd3, double& dfsigma, double& dfsigmap, double& dfusup, const double usup, const double twodd, const double d, double width, seapodym_upwind::Mode mode)
 {
 	switch (pos){
         	case SANS:
 			case G_FERME:
 			if (seapodym_upwind::in_band(usup, width)) {
-				const auto split = seapodym_upwind::inside_split(usup, width);
+				const auto split = seapodym_upwind::inside_split(usup, width, mode);
 				dfsigma  -= (1/twodd) * dfd3;
 				dfsigmap -= (1/twodd) * dfd3;
 				dfusup   += (split.d_negative/d) * dfd3;

@@ -42,15 +42,22 @@ bool VarParamCoupled::read(const string& parfile)
 
 	const char* epsilon_source = "default";
 	upwind_smoothing_epsilon = 0.0;
+	upwind_smoothing_mode = seapodym_upwind::Mode::QuadraticC1;
+	habitat_gradient_smoothing_eta = 0.0;
 	try {
 		if (doc.has_element("/upwind_smoothing_epsilon")) {
 			const string width = doc.get("/upwind_smoothing_epsilon", "value");
 			upwind_smoothing_epsilon = seapodym_upwind::parse_epsilon(
 				width.c_str(), "upwind_smoothing_epsilon/@value");
 			epsilon_source = "parfile";
-		} else if (const char* width = std::getenv("SEAPODYM_UPWIND_EPSILON")) {
-			upwind_smoothing_epsilon = seapodym_upwind::parse_epsilon(width, "SEAPODYM_UPWIND_EPSILON");
-			epsilon_source = "environment";
+		}
+		if (doc.has_element("/upwind_smoothing_mode")) {
+			upwind_smoothing_mode = seapodym_upwind::parse_mode(doc.get("/upwind_smoothing_mode", "value"));
+		}
+		if (doc.has_element("/habitat_gradient_smoothing_eta")) {
+			const string eta = doc.get("/habitat_gradient_smoothing_eta", "value");
+			habitat_gradient_smoothing_eta = seapodym_upwind::parse_epsilon(
+				eta.c_str(), "habitat_gradient_smoothing_eta/@value");
 		}
 	} catch (const std::invalid_argument& error) {
 		cerr << error.what() << '\n';
@@ -58,6 +65,8 @@ bool VarParamCoupled::read(const string& parfile)
 	}
 	cout << "Upwind smoothing epsilon: " << upwind_smoothing_epsilon
 	     << " (" << epsilon_source << ")" << endl;
+	cout << "Upwind smoothing mode: " << seapodym_upwind::mode_name(upwind_smoothing_mode) << endl;
+	cout << "Habitat gradient smoothing eta: " << habitat_gradient_smoothing_eta << endl;
 
 	//smin1 cap parameters (global). Defaults reproduce existing configs: sharp knee a=0.07, shifted form.
 	smin1_shifted_form = 1;

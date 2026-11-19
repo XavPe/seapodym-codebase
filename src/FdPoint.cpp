@@ -12,6 +12,14 @@
 #include <string>
 #include <cmath>
 
+static void append_regularization(std::ostream& out, const CParam& param)
+{
+    out << ",\"regularization\":{\"upwind_mode\":\""
+        << seapodym_upwind::mode_name(param.upwind_smoothing_mode)
+        << "\",\"upwind_epsilon\":" << param.upwind_smoothing_epsilon
+        << ",\"habitat_eta\":" << param.habitat_gradient_smoothing_eta << '}';
+}
+
 static std::string quoted(const std::string& s) {
     std::ostringstream o; o << '"';
     for (unsigned char c:s) {
@@ -110,7 +118,9 @@ int seapodym_fd_point(int argc,char** argv) {
                   << ",\"lower\":" << sc.param->fd_lower(i) << ",\"upper\":" << sc.param->fd_upper(i)
                   << ",\"physical\":" << sc.param->get_parval(i) << ",\"internal\":" << x[i] << '}';
             }
-            o << "],\"initialization\":\"native_xinit_cached_forcings\"}";put(output,o.str());return 0;
+            o << "],\"initialization\":\"native_xinit_cached_forcings\"";
+            append_regularization(o, *sc.param);
+            o << '}';put(output,o.str());return 0;
         }
         std::ifstream vector(vectorfile.c_str());vector.imbue(std::locale::classic());int supplied=0;vector>>supplied;
         if (supplied!=n) throw std::runtime_error("vector dimension mismatch");
@@ -146,6 +156,7 @@ int seapodym_fd_point(int argc,char** argv) {
             for (int i=1;i<=n;++i) { if (i>1) o << ',';o << quoted((char*)parameter_names[i]); }
             o << "],\"gradient_coordinates\":\"internal\"";
         }
+        append_regularization(o, *sc.param);
         o << '}';put(output,o.str());return 0;
     } catch (const std::exception& e) {
         std::cerr << "FD_POINT_ERROR: " << e.what() << '\n';return 2;

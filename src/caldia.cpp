@@ -1,3 +1,4 @@
+#include "Regularization.h"
 #include "calpop.h"
 
 ///Forward functions for: 
@@ -120,8 +121,8 @@ if (habitat(i,j)==0){cout << "Zero habitat at " << age << " " << i << " "<< j <<
 				//   c_diff_fish   = SEEK fraction (additional at H_a=0)
 				double D = Dinf * diff_habitat_comp(dform, habitat(i,j), sigma_species, c_diff_fish);
 				
-				rho_x = 1.0- rho * sqrt(dHdx*dHdx) * dx;
-				rho_y = 1.0- rho * sqrt(dHdy*dHdy) * dy;
+				rho_x = 1.0- rho * seapodym_regularization::habitat_abs(dHdx, dx, param.habitat_gradient_smoothing_eta) * dx;
+				rho_y = 1.0- rho * seapodym_regularization::habitat_abs(dHdy, dy, param.habitat_gradient_smoothing_eta) * dy;
 
 				//Reduction of diffusion during seasonal migrations, i.e.
 				//when spawning migrations take place
