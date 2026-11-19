@@ -1,5 +1,6 @@
 #include "VarParamCoupled.h"
 #include "AatExport.h"
+#include "ParameterDiagnostics.h"
 bool nocase_compare(char c1, char c2);
 
 void VarParamCoupled::xinit(dvector& x, adstring_array& x_names)
@@ -433,16 +434,11 @@ double VarParamCoupled::par_init_up(int ix, double eps)
 
 dvector VarParamCoupled::dpar_dx(dvar_vector x, const int nvar)
 {
-	double pi = 3.141592654;
-	dvector dpdx;
-	dpdx.allocate(1,nvar);
-	dpdx.initialize();
-	dpdx = 0.25*pi*elem_prod(dvarpars_max-dvarpars_min,cos(0.5*pi*value(x)));
-//dvariable penalty = 0.0;
-//	for (int i=1; i<nvar; i++)
-//		dpdx[i] = value(boundp(x[i], dvarpars_min[i], dvarpars_max[i], penalty));
-	
-	return dpdx;	
+	dvector dpdx(1,nvar);
+	for (int i=1; i<=nvar; ++i)
+		dpdx(i) = seapodym_diagnostics::parameter_jacobian(
+			value(x(i)), dvarpars_min(i), dvarpars_max(i));
+	return dpdx;
 }
 
 

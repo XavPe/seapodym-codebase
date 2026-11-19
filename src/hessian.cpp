@@ -4,6 +4,7 @@
 #include "SeapodymCoupled.h"
 #include "Cmdopt.h"
 #include "AatExport.h"
+#include "ParameterDiagnostics.h"
 
 string get_path(const char* full_path);
 double run_model(SeapodymCoupled& sc, dvar_vector x, dvector& g, const int nvar);
@@ -54,6 +55,9 @@ void Hessian_comp(const char* parfile)
 	clock_t time1 = clock();
 	cout << "\nstarting computing Hessian" << endl;
 	likelihood = run_model(sc,x,g1,nvar);
+	// Capture physical values and their Jacobian at the central parameter vector.
+	const dvector central_pars = sc.param->get_parvals();
+	const dvector physical_jacobian = sc.param->dpar_dx(x,nvar);
 	
 	log_precision.full_precision();
 	cout << "Likelihood and Gradient for estimated vector: \n" << likelihood << "; " << g1 << endl;
@@ -104,7 +108,7 @@ void Hessian_comp(const char* parfile)
 	double condition_number = max_abs_eig / min_abs_eig;   // largest / smallest eigenvalue by magnitude (spectral condition number; = lambda_max/lambda_min when PD Hessian)
 
 
-	dvector pars = sc.param->get_parvals();
+	const dvector& pars = central_pars;
 
 	//=== convergence / identifiability diagnostics ========================
 	// Convergence is NOT judged by the raw gradient norm max|g_i|: it is not
@@ -173,11 +177,12 @@ void Hessian_comp(const char* parfile)
 	ofs << nvar << "\n\n";
 
 	ofs << "Parameter\tEstimate\tGradient\tStdErr\tCV\tNewtonStep\tNewtonStep/SE\n";
+	ofs << "# CV_COORDINATES: PHYSICAL_DELTA_METHOD\n";
 	ofs << "# NewtonStep=(-H^-1 g)_i is the step to the local (unconstrained) quadratic min; \n";
 	ofs << "# normalized by parameter SE, it shows how far FM still wants to move within parameter uncertainty\n";
 	for (int i=1; i<=nvar; i++)
 		ofs << x_names[i] << "\t" << pars(i) << "\t" << g1(i) << "\t"
-			<< SE(i) << "\t" << SE(i)/fabs(pars(i)) << "\t"
+			<< SE(i) << "\t" << seapodym_diagnostics::physical_cv(pars(i), SE(i), physical_jacobian(i)) << "\t"
 			<< nstep(i) << "\t" << nstep(i)/SE(i) << "\n";
 
 	ofs << "\n";

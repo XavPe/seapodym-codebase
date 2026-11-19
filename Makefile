@@ -19,6 +19,7 @@ ctrace.h \
 Utilities.h \
 VarMatrices.h \
 VarParamCoupled.h \
+ParameterDiagnostics.h \
 VarSimtunaFunc.h \
 NishikawaLike.h
 
